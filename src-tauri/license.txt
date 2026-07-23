@@ -1,0 +1,13 @@
+MEMORIES DESKTOP END USER LICENSE AGREEMENT
+
+IMPORTANT: PLEASE READ THIS LICENSE CAREFULLY BEFORE USING THIS SOFTWARE.
+
+1. LICENSE GRANT. Minec ("Licensor") grants you a personal, non-exclusive, non-transferable license to use this software (Memories Desktop).
+
+2. RESTRICTIONS. You may not reverse engineer, decompile, or disassemble the software, except and only to the extent that such activity is expressly permitted by applicable law.
+
+3. DATA PRIVACY. Memories Desktop primarily operates locally on your machine. Any photos uploaded to the cloud are done so with your explicit consent and are subject to the privacy policy of the hosting service.
+
+4. DISCLAIMER OF WARRANTY. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
+
+By installing Memories Desktop, you agree to these terms.
