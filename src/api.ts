@@ -14,14 +14,47 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (err: any) {
+    console.error("Fetch network error:", err);
+    throw new Error('Không thể kết nối đến máy chủ API (Lỗi mạng hoặc máy chủ không phản hồi)');
+  }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'API request failed');
+    let errorDetail = '';
+    try {
+      const errorJson = await response.json();
+      errorDetail = errorJson.error || errorJson.message || errorJson.detail || errorJson.msg || '';
+    } catch (e) {
+      // response body was not valid JSON
+    }
+
+    if (errorDetail) {
+      throw new Error(errorDetail);
+    }
+
+    if (response.status === 401) {
+      throw new Error('Chưa đăng nhập hoặc phiên làm việc đã hết hạn (401)');
+    }
+    if (response.status === 403) {
+      throw new Error('Bạn không có quyền thực hiện thao tác này (403)');
+    }
+    if (response.status === 413) {
+      throw new Error('Dung lượng tệp tải lên vượt quá giới hạn (413)');
+    }
+    if (response.status === 500) {
+      throw new Error('Lỗi máy chủ nội bộ (500 Internal Server Error)');
+    }
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      throw new Error('Máy chủ quá tải hoặc không phản hồi (Bad Gateway / Timeout)');
+    }
+
+    throw new Error(`Yêu cầu API thất bại (${response.status} ${response.statusText})`);
   }
 
   return response.json();

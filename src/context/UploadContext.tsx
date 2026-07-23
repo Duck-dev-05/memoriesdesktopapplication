@@ -17,6 +17,8 @@ type UploadContextType = {
   addJobs: (files: File[], albumId?: string) => void;
   clearCompleted: () => void;
   cancelJob: (id: string) => void;
+  retryJob: (id: string) => void;
+  retryFailedJobs: () => void;
   isUploading: boolean;
 };
 
@@ -26,42 +28,35 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<UploadJob[]>([]);
   const { addNotification } = useNotifications();
 
-  const addJobs = useCallback(async (files: File[], albumId?: string) => {
-    const newJobs = files.map(f => ({
-      id: Math.random().toString(36).substring(2, 11),
-      file: f,
-      progress: 0,
-      status: 'pending' as const,
-      albumId
-    }));
-    
-    setJobs(prev => [...prev, ...newJobs]);
-
+  const processJobQueue = useCallback(async (jobsToProcess: UploadJob[]) => {
     let successCount = 0;
     let errorCount = 0;
 
-    // Process sequentially
-    for (const job of newJobs) {
-      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'uploading', progress: 10 } : j));
+    for (const job of jobsToProcess) {
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'uploading', progress: 10, error: undefined } : j));
       
+      let progressInterval: any = null;
       try {
-        const progressInterval = setInterval(() => {
-            setJobs(prev => prev.map(j => {
-                if (j.id === job.id && j.progress < 90) {
-                    return { ...j, progress: j.progress + Math.floor(Math.random() * 15) };
-                }
-                return j;
-            }));
+        progressInterval = setInterval(() => {
+          setJobs(prev => prev.map(j => {
+            if (j.id === job.id && j.progress < 90) {
+              return { ...j, progress: j.progress + Math.floor(Math.random() * 15) };
+            }
+            return j;
+          }));
         }, 400);
 
         await api.addPhoto(job.file, job.albumId);
         
-        clearInterval(progressInterval);
         setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed', progress: 100 } : j));
         successCount++;
       } catch (error: any) {
-        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'error', error: error.message || "Failed" } : j));
+        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'error', error: error.message || "Tải lên thất bại" } : j));
         errorCount++;
+      } finally {
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
       }
     }
 
@@ -78,27 +73,55 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         permissionGranted = permission === 'granted';
       }
       
-        // 1. Upload Complete Setting
-        if (userSettings['Upload Complete'] !== false) {
-          let body = `Tải lên thành công ${successCount} ảnh.`;
-          if (errorCount > 0) {
-            body += ` Lỗi tải lên: ${errorCount} ảnh.`;
-          }
-          
-          // Desktop Notification
-          if (permissionGranted) {
-            sendNotification({ title: 'Memories', body });
-          }
-          
-          // In-App Notification
-          addNotification('Tải lên hoàn tất', body, errorCount > 0 ? 'warning' : 'success');
+      if (userSettings['Upload Complete'] !== false) {
+        let body = `Tải lên thành công ${successCount} ảnh.`;
+        if (errorCount > 0) {
+          body += ` Lỗi tải lên: ${errorCount} ảnh.`;
         }
-
-      
+        
+        if (permissionGranted) {
+          sendNotification({ title: 'Memories', body });
+        }
+        
+        addNotification('Tải lên hoàn tất', body, errorCount > 0 ? 'warning' : 'success');
+      }
     } catch (err) {
       console.error("Không thể gửi thông báo:", err);
     }
   }, [addNotification]);
+
+  const addJobs = useCallback(async (files: File[], albumId?: string) => {
+    const newJobs: UploadJob[] = files.map(f => ({
+      id: Math.random().toString(36).substring(2, 11),
+      file: f,
+      progress: 0,
+      status: 'pending' as const,
+      albumId
+    }));
+    
+    setJobs(prev => [...prev, ...newJobs]);
+    await processJobQueue(newJobs);
+  }, [processJobQueue]);
+
+  const retryJob = useCallback((id: string) => {
+    setJobs(prev => {
+      const target = prev.find(j => j.id === id);
+      if (target) {
+        processJobQueue([target]);
+      }
+      return prev;
+    });
+  }, [processJobQueue]);
+
+  const retryFailedJobs = useCallback(() => {
+    setJobs(prev => {
+      const failed = prev.filter(j => j.status === 'error');
+      if (failed.length > 0) {
+        processJobQueue(failed);
+      }
+      return prev;
+    });
+  }, [processJobQueue]);
 
   const clearCompleted = useCallback(() => {
     setJobs(prev => prev.filter(j => j.status !== 'completed' && j.status !== 'error'));
@@ -111,7 +134,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const isUploading = jobs.some(j => j.status === 'uploading' || j.status === 'pending');
 
   return (
-    <UploadContext.Provider value={{ jobs, addJobs, clearCompleted, cancelJob, isUploading }}>
+    <UploadContext.Provider value={{ jobs, addJobs, clearCompleted, cancelJob, retryJob, retryFailedJobs, isUploading }}>
       {children}
     </UploadContext.Provider>
   );

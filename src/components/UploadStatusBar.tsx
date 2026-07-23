@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, X, CheckCircle, AlertCircle, File, Loader2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, X, CheckCircle, AlertCircle, File, Loader2, RotateCcw } from 'lucide-react';
 import { useUpload } from '../context/UploadContext';
 
 export default function UploadStatusBar() {
-  const { jobs, clearCompleted, cancelJob } = useUpload();
+  const { jobs, clearCompleted, cancelJob, retryJob, retryFailedJobs } = useUpload();
   const [expanded, setExpanded] = useState(true);
 
   if (jobs.length === 0) return null;
@@ -63,7 +63,31 @@ export default function UploadStatusBar() {
         onClick={() => setExpanded(!expanded)}
       >
         <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{title}</div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {errorJobs.length > 0 && activeJobs.length === 0 && (
+            <button
+              title="Thử lại các tệp lỗi"
+              style={{
+                background: 'var(--accent-primary, #3b82f6)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontWeight: 500
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                retryFailedJobs();
+              }}
+            >
+              <RotateCcw size={12} /> Thử lại
+            </button>
+          )}
           <button style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
             {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
@@ -132,7 +156,29 @@ export default function UploadStatusBar() {
                 </div>
                 <div>
                   {job.status === 'completed' && <CheckCircle size={18} color="var(--color-success, #10b981)" />}
-                  {job.status === 'error' && <AlertCircle size={18} color="var(--color-danger, #ef4444)" />}
+                  {job.status === 'error' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        title="Thử lại tệp này"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          retryJob(job.id);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-secondary, #6b7280)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <RotateCcw size={15} />
+                      </button>
+                      <AlertCircle size={18} color="var(--color-danger, #ef4444)" />
+                    </div>
+                  )}
                   {(job.status === 'uploading' || job.status === 'pending') && (
                     <Loader2 size={18} color="var(--accent-primary)" style={{ animation: 'spin 2s linear infinite' }} />
                   )}
