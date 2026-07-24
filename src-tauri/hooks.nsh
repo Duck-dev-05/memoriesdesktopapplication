@@ -20,3 +20,14 @@
     ${EndIf}
   ${EndIf}
 !macroend
+
+!macro NSIS_HOOK_PREINSTALL
+  nsExec::Exec 'taskkill /F /IM memoriesdesktop-app.exe /T'
+  nsExec::Exec 'taskkill /F /IM "Memories Desktop.exe" /T'
+!macroend
+
+!macro NSIS_HOOK_PREUNINSTALL
+  nsExec::Exec 'taskkill /F /IM memoriesdesktop-app.exe /T'
+  nsExec::Exec 'taskkill /F /IM "Memories Desktop.exe" /T'
+!macroend
+

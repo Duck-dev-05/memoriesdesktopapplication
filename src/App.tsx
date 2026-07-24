@@ -319,19 +319,19 @@ function App() {
         const { ask, message } = await import('@tauri-apps/plugin-dialog');
         const update = await check();
         if (update) {
-          const yes = await ask(`Có phiên bản mới: ${update.version}!\n\n${update.body || 'Bạn có muốn cập nhật ngay bây giờ không?'}`, {
-            title: 'Cập nhật Memories',
+          const yes = await ask(`New version available: v${update.version}!\n\n${update.body || 'Would you like to update now?'}`, {
+            title: 'Memories Update',
             kind: 'info',
-            okLabel: 'Cập nhật',
-            cancelLabel: 'Để sau'
+            okLabel: 'Update',
+            cancelLabel: 'Later'
           });
           if (yes) {
             await update.downloadAndInstall();
-            await message('Cập nhật thành công! Vui lòng khởi động lại ứng dụng.', { title: 'Thành công', kind: 'info' });
+            await message('Update completed successfully! Please restart the application.', { title: 'Success', kind: 'info' });
           }
         }
       } catch (err) {
-        console.error('Lỗi khi kiểm tra cập nhật:', err);
+        console.error('Error checking for updates:', err);
       }
     };
     checkForUpdates();

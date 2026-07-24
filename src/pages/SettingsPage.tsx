@@ -238,28 +238,33 @@ export default function SettingsPage() {
             onClick={async () => {
               const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
               if (!isTauri) {
-                alert("Tính năng kiểm tra cập nhật chỉ khả dụng khi chạy ứng dụng Desktop (Tauri).");
+                alert("Update check feature is only available when running the Desktop (Tauri) app.");
                 return;
               }
               try {
                 const { check } = await import('@tauri-apps/plugin-updater');
                 const update = await check();
                 if (update) {
-                  const confirmed = confirm(`Có bản cập nhật mới (${update.version}). Bạn có muốn tải xuống và cài đặt ngay không?`);
+                  const confirmed = confirm(`A new update is available (v${update.version}). Would you like to download and install it now?`);
                   if (confirmed) {
                     await update.downloadAndInstall();
-                    alert("Cập nhật thành công! Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.");
+                    alert("Update successful! Please restart the application to apply changes.");
                   }
                 } else {
-                  alert("Bạn đang sử dụng phiên bản mới nhất!");
+                  alert("You are already using the latest version!");
                 }
               } catch (e: any) {
-                console.error('Lỗi kiểm tra cập nhật:', e);
+                console.error('Update check error:', e);
                 const errMsg = String(e?.message || e || '');
-                if (errMsg.includes('404') || errMsg.includes('Not Found')) {
-                  alert("Không tìm thấy tệp thông tin cập nhật (latest.json) trên GitHub Releases. Hiện tại chưa có bản phát hành mới.");
+                if (
+                  errMsg.includes('404') || 
+                  errMsg.includes('Not Found') || 
+                  errMsg.includes('Could not fetch') || 
+                  errMsg.includes('release JSON')
+                ) {
+                  alert("No new release available or unable to fetch update information from GitHub Releases.");
                 } else {
-                  alert(`Lỗi khi kiểm tra cập nhật: ${errMsg}`);
+                  alert(`Error checking for updates: ${errMsg}`);
                 }
               }
             }}
