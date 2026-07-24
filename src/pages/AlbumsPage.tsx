@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Plus, ChevronRight, Folder, CheckCircle, MoreVertical, Edit2, Trash2, X, FolderOpen, UploadCloud, Share2, Copy, Globe, Link, Mail, Lock } from 'lucide-react';
+import { Plus, ChevronRight, Folder, CheckCircle, MoreVertical, Edit2, Trash2, X, FolderOpen, UploadCloud, Share2, Copy, Globe, Link, Mail, Lock, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api, API_BASE_URL, Album, Photo } from '../api';
 import { extractFilesFromDataTransfer, extractFilesFromEntry } from '../lib/fileDrop';
 import { useUpload } from '../context/UploadContext';
 import PhotoCard from '../components/PhotoCard';
 import ShareModal from '../components/ShareModal';
+import SlideshowModal from '../components/SlideshowModal';
 import { useSelection } from '../context/SelectionContext';
 
 const containerVariants = {
@@ -36,6 +37,7 @@ export default function AlbumsPage() {
   const [shareModalAlbum, setShareModalAlbum] = useState<Album | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
+  const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
 
   const handleScanAlbum = async () => {
     if (!currentFolderId) return;
@@ -495,6 +497,25 @@ export default function AlbumsPage() {
             <h3 style={{ margin: 0, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Tất cả ảnh</h3>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
+                onClick={() => setIsSlideshowOpen(true)}
+                className="btn btn-primary"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "var(--accent-primary)",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  fontWeight: 500
+                }}
+              >
+                <Play size={16} fill="white" />
+                Trình chiếu (Windows 7)
+              </button>
+              <button
                 onClick={() => handleDownloadAlbum(currentFolderId)}
                 className="btn"
                 style={{
@@ -549,7 +570,6 @@ export default function AlbumsPage() {
         </div>
       )}
 
-
       {isShareModalOpen && shareModalAlbum && (
         <ShareModal 
           album={shareModalAlbum} 
@@ -558,6 +578,14 @@ export default function AlbumsPage() {
             setAlbums(albums.map(a => a.id === updated.id ? updated : a));
             setShareModalAlbum(updated);
           }} 
+        />
+      )}
+
+      {isSlideshowOpen && currentFolderId && (
+        <SlideshowModal
+          photos={photos.filter(p => p.albumId === currentFolderId)}
+          albumName={currentPath[currentPath.length - 1]?.name || "Album"}
+          onClose={() => setIsSlideshowOpen(false)}
         />
       )}
 
