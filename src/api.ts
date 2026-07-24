@@ -123,6 +123,13 @@ export interface PhotoStats {
 }
 
 export const api = {
+  movePhotosToAlbum: async (photoIds: string[], targetAlbumId: string | null): Promise<{ success: boolean }> => {
+    return fetchApi('/albums/move-photos', {
+      method: 'POST',
+      body: JSON.stringify({ photoIds, targetAlbumId }),
+    });
+  },
+
   // Photos
   getPhotos: async (albumId?: string, passcode?: string): Promise<Photo[]> => {
     try {

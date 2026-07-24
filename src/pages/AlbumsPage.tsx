@@ -8,6 +8,7 @@ import { extractFilesFromDataTransfer, extractFilesFromEntry } from '../lib/file
 import { useUpload } from '../context/UploadContext';
 import PhotoCard from '../components/PhotoCard';
 import ShareModal from '../components/ShareModal';
+import { useSelection } from '../context/SelectionContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -141,6 +142,24 @@ export default function AlbumsPage() {
     currentFolderId ? a.parentId === currentFolderId : !a.parentId
   );
   
+  const { selectedIds, clearSelection } = useSelection();
+
+  const handleBreadcrumbDrop = async (targetAlbumId: string | null, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedIds.length === 0) return;
+
+    try {
+      await api.movePhotosToAlbum(selectedIds, targetAlbumId);
+      clearSelection();
+      alert(`Đã chuyển ${selectedIds.length} ảnh sang ${targetAlbumId ? 'album' : 'Bộ sưu tập chính'} thành công!`);
+      fetchAll();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Chuyển ảnh thất bại: ${err?.message || err}`);
+    }
+  };
+
   const handleNavigate = async (folder: Album) => {
     if (folder.isLocked) {
       const passcode = prompt("Album này đã bị khóa. Vui lòng nhập mật khẩu:");
@@ -312,6 +331,9 @@ export default function AlbumsPage() {
               <span 
                 className={`breadcrumb-item ${currentPath.length === 0 ? 'active' : ''}`}
                 onClick={() => handleBreadcrumbClick(-1)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleBreadcrumbDrop(null, e)}
+                title="Kéo thả ảnh được chọn vào đây để chuyển ra Bộ sưu tập chính"
               >
                 Bộ sưu tập
               </span>
@@ -321,6 +343,9 @@ export default function AlbumsPage() {
                   <span 
                     className={`breadcrumb-item ${index === currentPath.length - 1 ? 'active' : ''}`}
                     onClick={() => handleBreadcrumbClick(index)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleBreadcrumbDrop(folder.id, e)}
+                    title={`Kéo thả ảnh được chọn vào đây để chuyển sang album ${folder.name}`}
                   >
                     {folder.name}
                   </span>
@@ -529,7 +554,7 @@ export default function AlbumsPage() {
         <ShareModal 
           album={shareModalAlbum} 
           onClose={() => setIsShareModalOpen(false)} 
-          onUpdate={(updated) => {
+          onUpdate={(updated: Album) => {
             setAlbums(albums.map(a => a.id === updated.id ? updated : a));
             setShareModalAlbum(updated);
           }} 
