@@ -40,6 +40,7 @@
     "fs:allow-appdata-write",
     "fs:allow-appdata-read",
     "fs:allow-download-write",
-    "notification:default"
+    "notification:default",
+    "updater:default"
   ]
 }

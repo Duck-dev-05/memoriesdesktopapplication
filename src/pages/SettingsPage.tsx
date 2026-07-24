@@ -236,6 +236,11 @@ export default function SettingsPage() {
           </div>
           <button 
             onClick={async () => {
+              const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+              if (!isTauri) {
+                alert("Tính năng kiểm tra cập nhật chỉ khả dụng khi chạy ứng dụng Desktop (Tauri).");
+                return;
+              }
               try {
                 const { check } = await import('@tauri-apps/plugin-updater');
                 const update = await check();
@@ -248,9 +253,14 @@ export default function SettingsPage() {
                 } else {
                   alert("Bạn đang sử dụng phiên bản mới nhất!");
                 }
-              } catch (e) {
-                console.error(e);
-                alert("Lỗi khi kiểm tra cập nhật. Chắc chắn bạn đang chạy ứng dụng Tauri.");
+              } catch (e: any) {
+                console.error('Lỗi kiểm tra cập nhật:', e);
+                const errMsg = String(e?.message || e || '');
+                if (errMsg.includes('404') || errMsg.includes('Not Found')) {
+                  alert("Không tìm thấy tệp thông tin cập nhật (latest.json) trên GitHub Releases. Hiện tại chưa có bản phát hành mới.");
+                } else {
+                  alert(`Lỗi khi kiểm tra cập nhật: ${errMsg}`);
+                }
               }
             }}
             style={{

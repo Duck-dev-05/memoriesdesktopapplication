@@ -312,6 +312,8 @@ function App() {
   useEffect(() => {
     // Check for updates silently on startup
     const checkForUpdates = async () => {
+      const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+      if (!isTauri) return;
       try {
         const { check } = await import('@tauri-apps/plugin-updater');
         const { ask, message } = await import('@tauri-apps/plugin-dialog');
