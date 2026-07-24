@@ -223,6 +223,31 @@ export default function SettingsPage() {
         <div className="settings-group-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: 'var(--accent-secondary)' }}><HardDrive size={15} /></span>
+            <span className="settings-group-title">Danh sách Phím tắt (Keyboard Shortcuts)</span>
+          </div>
+        </div>
+        <div className="toggle-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.75rem' }}>
+          {[
+            { keys: 'Ctrl + A / Cmd + A', desc: 'Chọn tất cả ảnh trên trang (Select All)' },
+            { keys: 'Esc', desc: 'Hủy chọn tất cả ảnh / Đóng cửa sổ' },
+            { keys: 'Ctrl + U / Cmd + U', desc: 'Mở nhanh trang Tải lên (Quick Upload)' },
+            { keys: 'Ctrl + F / Cmd + F', desc: 'Tìm kiếm kỷ niệm (Search)' },
+            { keys: 'Alt + H / T / A / U / F / M', desc: 'Điều hướng Trang chủ, Dòng thời gian, Album, Tải lên, Yêu thích, Bản đồ' },
+          ].map(shortcut => (
+            <div key={shortcut.keys} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '6px 0', borderBottom: '1px dashed var(--border-subtle)' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{shortcut.desc}</span>
+              <kbd style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-medium)', borderRadius: '4px', padding: '2px 8px', fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-secondary)' }}>
+                {shortcut.keys}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--accent-secondary)' }}><HardDrive size={15} /></span>
             <span className="settings-group-title">Tối ưu hiệu năng & Băng thông</span>
           </div>
         </div>

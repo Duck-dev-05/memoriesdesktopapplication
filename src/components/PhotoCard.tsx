@@ -41,6 +41,7 @@ export default function PhotoCard({ photo, style, featured, onClick }: { photo: 
 
   return (
     <motion.div
+      data-photo-id={photo.id}
       variants={itemVariants}
       style={{
         position: 'relative',

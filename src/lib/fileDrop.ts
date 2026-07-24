@@ -35,10 +35,15 @@ export async function extractFilesFromDataTransfer(items: DataTransferItemList):
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (item.kind === 'file') {
-      const entry = item.webkitGetAsEntry();
+      const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
       if (entry) {
         const entryFiles = await extractFilesFromEntry(entry);
         files.push(...entryFiles);
+      } else {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
       }
     }
   }

@@ -38,13 +38,70 @@ import LocalPhotosPage  from "./pages/LocalPhotosPage";
 
 // Context & Components
 import { UploadProvider } from "./context/UploadContext";
-import { SelectionProvider } from "./context/SelectionContext";
+import { SelectionProvider, useSelection } from "./context/SelectionContext";
 import { NotificationProvider, useNotifications } from "./context/NotificationContext";
 import UploadStatusBar from "./components/UploadStatusBar";
 import Titlebar from "./components/Titlebar";
 import OfflineIndicator from "./components/OfflineIndicator";
 import BulkActionBar from "./components/BulkActionBar";
 import { useAutoBackup } from "./hooks/useAutoBackup";
+
+function KeyboardShortcutsHandler() {
+  const navigate = useNavigate();
+  const { selectAll, clearSelection, selectedIds } = useSelection();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Escape to clear selection
+      if (e.key === 'Escape' && selectedIds.length > 0) {
+        clearSelection();
+        return;
+      }
+
+      // Ctrl+A or Cmd+A for Select All Photos
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const photoElements = document.querySelectorAll('[data-photo-id]');
+        const photoIds = Array.from(photoElements).map(el => el.getAttribute('data-photo-id')).filter(Boolean) as string[];
+        if (photoIds.length > 0) {
+          selectAll(photoIds);
+        }
+        return;
+      }
+
+      // Ctrl+F or Cmd+F for Search
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        navigate('/search');
+      }
+      // Ctrl+U or Cmd+U for Upload
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        navigate('/upload');
+      }
+      // Alt-based navigation shortcuts
+      if (e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'h': e.preventDefault(); navigate('/'); break;
+          case 't': e.preventDefault(); navigate('/timeline'); break;
+          case 'a': e.preventDefault(); navigate('/albums'); break;
+          case 'u': e.preventDefault(); navigate('/upload'); break;
+          case 'f': e.preventDefault(); navigate('/favorites'); break;
+          case 'm': e.preventDefault(); navigate('/map'); break;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, selectAll, clearSelection, selectedIds]);
+
+  return null;
+}
 
 // ── Route meta ──────────────────────────────────────────────
 const routeMeta: Record<string, string> = {
@@ -359,33 +416,50 @@ function App() {
     }
   }, [navigate, location.pathname]);
 
+  // Native Tauri drag-and-drop listener for files/folders dropped from Windows Explorer (outside folders)
   useEffect(() => {
-    // Global keyboard shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+F or Cmd+F for Search
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        navigate('/search');
-      }
-      // Ctrl+U or Cmd+U for Upload
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
-        e.preventDefault();
-        navigate('/upload');
-      }
-      // Alt-based navigation shortcuts
-      if (e.altKey) {
-        switch (e.key.toLowerCase()) {
-          case 'h': e.preventDefault(); navigate('/'); break;
-          case 't': e.preventDefault(); navigate('/timeline'); break;
-          case 'a': e.preventDefault(); navigate('/albums'); break;
-          case 'u': e.preventDefault(); navigate('/upload'); break;
-          case 'f': e.preventDefault(); navigate('/favorites'); break;
-          case 'm': e.preventDefault(); navigate('/map'); break;
-        }
+    let unlisten: (() => void) | undefined;
+    const setupNativeDropListener = async () => {
+      const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+      if (!isTauri) return;
+
+      try {
+        const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+        const { readFile } = await import('@tauri-apps/plugin-fs');
+
+        unlisten = await getCurrentWebviewWindow().onDragDropEvent(async (event) => {
+          if (event.payload.type === 'drop') {
+            const paths: string[] = event.payload.paths;
+            const files: File[] = [];
+
+            for (const filePath of paths) {
+              try {
+                const fileName = filePath.split(/[/\\]/).pop() || 'photo.jpg';
+                const ext = fileName.split('.').pop()?.toLowerCase() || '';
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'mp4', 'mov', 'webm'].includes(ext)) {
+                  const contents = await readFile(filePath);
+                  const file = new File([contents], fileName, { type: `image/${ext === 'mp4' ? 'mp4' : 'jpeg'}` });
+                  files.push(file);
+                }
+              } catch (err) {
+                console.error('Failed to read native dropped file:', filePath, err);
+              }
+            }
+
+            if (files.length > 0) {
+              navigate('/upload', { state: { files } });
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Native Tauri drag-drop listener fallback to web drag-drop:', e);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    setupNativeDropListener();
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, [navigate]);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -421,6 +495,7 @@ function App() {
     <NotificationProvider>
       <UploadProvider>
         <SelectionProvider>
+          <KeyboardShortcutsHandler />
           <Titlebar />
           <OfflineIndicator />
           <BulkActionBar />
