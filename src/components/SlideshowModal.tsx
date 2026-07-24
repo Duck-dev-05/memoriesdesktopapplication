@@ -28,7 +28,7 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
   if (photos.length === 0) return null;
 
   const currentPhoto = photos[currentIndex];
-  const imageUrl = currentPhoto?.url || currentPhoto?.cloudUrl || '';
+  const imageUrl = (currentPhoto as any)?.imageData || currentPhoto?.url || currentPhoto?.cloudUrl || '';
 
   // Auto-advance timer
   useEffect(() => {
