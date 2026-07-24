@@ -41,8 +41,7 @@ export default function AlbumsPage() {
 
   const handleScanAlbum = async () => {
     if (!currentFolderId) return;
-    const albumPhotos = photos.filter(p => p.albumId === currentFolderId);
-    const untaggedPhotos = albumPhotos.filter(p => !p.tags || p.tags.length === 0);
+    const untaggedPhotos = currentAlbumPhotos.filter(p => !p.tags || p.tags.length === 0);
     
     if (untaggedPhotos.length === 0) {
       alert("Tất cả các ảnh trong album đã có thẻ!");
@@ -139,6 +138,21 @@ export default function AlbumsPage() {
   });
 
   const currentFolderId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+
+  // Helper to recursively collect a folder ID and all descendant subfolder IDs
+  const getFolderAndSubfolderIds = (folderId: string): string[] => {
+    const directChildren = processedAlbums.filter(a => a.parentId === folderId);
+    let ids: string[] = [folderId];
+    for (const child of directChildren) {
+      ids = ids.concat(getFolderAndSubfolderIds(child.id));
+    }
+    return ids;
+  };
+
+  const currentFolderAndSubfolderIds = currentFolderId ? getFolderAndSubfolderIds(currentFolderId) : [];
+  const currentAlbumPhotos = currentFolderId
+    ? photos.filter(p => p.albumId && currentFolderAndSubfolderIds.includes(p.albumId))
+    : [];
 
   const currentAlbums = processedAlbums.filter(a => 
     currentFolderId ? a.parentId === currentFolderId : !a.parentId
@@ -563,7 +577,7 @@ export default function AlbumsPage() {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            {photos.filter(p => p.albumId === currentFolderId).map((p) => (
+            {currentAlbumPhotos.map((p) => (
               <PhotoCard key={p.id} photo={p} />
             ))}
           </div>
@@ -583,7 +597,7 @@ export default function AlbumsPage() {
 
       {isSlideshowOpen && currentFolderId && (
         <SlideshowModal
-          photos={photos.filter(p => p.albumId === currentFolderId)}
+          photos={currentAlbumPhotos}
           albumName={currentPath[currentPath.length - 1]?.name || "Album"}
           onClose={() => setIsSlideshowOpen(false)}
         />
