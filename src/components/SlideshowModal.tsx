@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, Minimize2, X, Music, Upload, Clock } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, Minimize2, X, Music, Clock, Image as ImageIcon } from 'lucide-react';
 import { Photo } from '../api';
 import { ambientSynth } from '../lib/ambientSynth';
 
@@ -29,6 +29,16 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
 
   const currentPhoto = photos[currentIndex];
   const imageUrl = (currentPhoto as any)?.imageData || currentPhoto?.url || currentPhoto?.cloudUrl || '';
+  const isVideo = Boolean(imageUrl?.match(/\.(mp4|webm|ogg|mov)$/i));
+
+  // Lock body scroll while slideshow is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   // Auto-advance timer
   useEffect(() => {
@@ -115,13 +125,15 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99999,
-        background: '#000',
+        zIndex: 2000000,
+        background: '#09090b',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        fontFamily: 'var(--font-body, system-ui, -apple-system, sans-serif)',
+        userSelect: 'none'
       }}
     >
       <input
@@ -134,159 +146,261 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
       <audio ref={audioRef} src={customAudioUrl || undefined} loop />
 
       {/* Top Header Overlay */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 10,
-          padding: '1.5rem 2rem',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
+          zIndex: 20,
+          padding: '1.5rem 2.5rem',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           color: '#fff'
         }}
       >
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '0.5px' }}>{albumName}</h3>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>
-            {currentIndex + 1} / {photos.length} — {currentPhoto?.altText || "Kỷ niệm"}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            background: 'rgba(201, 122, 126, 0.25)',
+            border: '1px solid rgba(201, 122, 126, 0.4)',
+            padding: '8px 14px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <ImageIcon size={18} color="var(--accent-primary, #c97a7e)" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.5px', color: '#f3e8e8' }}>
+              {currentIndex + 1} / {photos.length}
+            </span>
+          </div>
+
+          <div>
+            <h3 style={{
+              margin: 0,
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-heading, serif)',
+              letterSpacing: '0.3px',
+              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+              color: '#fff'
+            }}>
+              {albumName}
+            </h3>
+            <p style={{
+              margin: '3px 0 0',
+              fontSize: '0.85rem',
+              color: 'rgba(255,255,255,0.7)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.8)'
+            }}>
+              {currentPhoto?.altText || "Khoảnh khắc kỷ niệm"}
+            </p>
+          </div>
         </div>
+
         <button
           onClick={onClose}
           style={{
-            background: 'rgba(255,255,255,0.2)',
-            border: 'none',
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.2)',
             color: '#fff',
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          title="Đóng trình chiếu"
-        >
-          <X size={22} />
-        </button>
-      </div>
-
-      {/* Main Slide Image (Windows 7 Ken Burns Pan-Zoom effect) */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0, scale: 1.08 }}
-          animate={{ opacity: 1, scale: 1.0 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-          style={{ width: '100vw', height: '100vh', position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={currentPhoto?.altText || "Slide"}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
-            />
-          ) : (
-            <div style={{ color: '#fff', fontSize: '1.5rem' }}>Ảnh không khả dụng</div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Bottom Floating Control Bar (Windows 7 style controls) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '2.5rem',
-          zIndex: 10,
-          background: 'rgba(20, 20, 20, 0.85)',
-          backdropFilter: 'blur(16px)',
-          borderRadius: '9999px',
-          padding: '0.75rem 2rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.5rem',
-          color: '#fff',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-          border: '1px solid rgba(255,255,255,0.15)'
-        }}
-      >
-        {/* Previous Button */}
-        <button
-          onClick={() => setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length)}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-          title="Ảnh trước"
-        >
-          <SkipBack size={20} />
-        </button>
-
-        {/* Play/Pause Button */}
-        <button
-          onClick={() => setIsPlaying(prev => !prev)}
-          style={{
-            background: 'var(--accent-1, #d97706)',
-            border: 'none',
-            color: '#fff',
-            width: '44px',
-            height: '44px',
+            width: '42px',
+            height: '42px',
             borderRadius: '50%',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(217, 119, 6, 0.4)'
+            transition: 'all 0.2s ease',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
-          title={isPlaying ? "Tạm dừng" : "Tự động phát"}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.8)';
+            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 1)';
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="Đóng trình chiếu (Esc)"
         >
-          {isPlaying ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
+          <X size={20} />
+        </button>
+      </motion.div>
+
+      {/* Main Slide Media with Ken Burns Pan-Zoom Effect */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1.0 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          style={{ width: '100vw', height: '100vh', position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {imageUrl ? (
+            isVideo ? (
+              <video
+                src={imageUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 15px 35px rgba(0,0,0,0.6))'
+                }}
+              />
+            ) : (
+              <img
+                src={imageUrl}
+                alt={currentPhoto?.altText || "Slide"}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 15px 35px rgba(0,0,0,0.6))'
+                }}
+              />
+            )
+          ) : (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>
+              Ảnh không khả dụng
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Bottom Floating Glass Control Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        style={{
+          position: 'absolute',
+          bottom: '2rem',
+          zIndex: 20,
+          background: 'rgba(18, 18, 22, 0.75)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderRadius: '9999px',
+          padding: '0.6rem 1.6rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.2rem',
+          color: '#fff',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+          border: '1px solid rgba(255, 255, 255, 0.15)'
+        }}
+      >
+        <button
+          onClick={() => setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length)}
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+          title="Ảnh trước (Left Arrow)"
+        >
+          <SkipBack size={16} />
         </button>
 
-        {/* Next Button */}
+        <button
+          onClick={() => setIsPlaying(prev => !prev)}
+          style={{
+            background: 'linear-gradient(135deg, #c97a7e 0%, #a8585c 100%)',
+            border: 'none',
+            color: '#fff',
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 6px 20px rgba(201, 122, 126, 0.5)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          title={isPlaying ? "Tạm dừng (Space)" : "Tự động phát (Space)"}
+        >
+          {isPlaying ? <Pause size={22} fill="white" /> : <Play size={22} fill="white" style={{ marginLeft: '3px' }} />}
+        </button>
+
         <button
           onClick={() => setCurrentIndex(prev => (prev + 1) % photos.length)}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-          title="Ảnh tiếp theo"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+          title="Ảnh tiếp theo (Right Arrow)"
         >
-          <SkipForward size={20} />
+          <SkipForward size={16} />
         </button>
 
-        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+        <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,0.15)' }} />
 
-        {/* Timer Interval Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-          <Clock size={16} opacity={0.8} />
+        {/* Speed select */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+          <Clock size={15} color="rgba(255,255,255,0.7)" />
           <select
             value={slideInterval}
             onChange={(e) => setSlideInterval(Number(e.target.value))}
             style={{
               background: 'rgba(255,255,255,0.1)',
               color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px',
               padding: '4px 8px',
-              fontSize: '0.85rem',
-              cursor: 'pointer'
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              outline: 'none'
             }}
           >
-            <option value={3} style={{ background: '#222' }}>3s / ảnh</option>
-            <option value={5} style={{ background: '#222' }}>5s / ảnh</option>
-            <option value={10} style={{ background: '#222' }}>10s / ảnh</option>
+            <option value={3} style={{ background: '#1c1c21', color: '#fff' }}>3s / ảnh</option>
+            <option value={5} style={{ background: '#1c1c21', color: '#fff' }}>5s / ảnh</option>
+            <option value={10} style={{ background: '#1c1c21', color: '#fff' }}>10s / ảnh</option>
           </select>
         </div>
 
-        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+        <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,0.15)' }} />
 
-        {/* Music Mode Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-          <Music size={16} color="var(--accent-1, #f59e0b)" />
+        {/* Music selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+          <Music size={15} color="var(--accent-primary, #c97a7e)" />
           <select
             value={musicMode}
             onChange={(e) => {
@@ -300,26 +414,27 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
             style={{
               background: 'rgba(255,255,255,0.1)',
               color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px',
               padding: '4px 8px',
-              fontSize: '0.85rem',
-              cursor: 'pointer'
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              outline: 'none',
+              maxWidth: '180px'
             }}
           >
-            <option value="synth" style={{ background: '#222' }}>🎹 Piano thư giãn (Bản quyền 0%)</option>
-            <option value="custom" style={{ background: '#222' }}>
-              {customAudioName ? `🎵 ${customAudioName.slice(0, 15)}...` : '📁 Tải nhạc MP3 của bạn'}
+            <option value="synth" style={{ background: '#1c1c21', color: '#fff' }}>🎹 Piano thư giãn (Bản quyền 0%)</option>
+            <option value="custom" style={{ background: '#1c1c21', color: '#fff' }}>
+              {customAudioName ? `🎵 ${customAudioName.slice(0, 14)}...` : '📁 Tải nhạc MP3 của bạn'}
             </option>
-            <option value="custom-trigger" style={{ background: '#222' }}>➕ Chọn tệp MP3 mới...</option>
-            <option value="mute" style={{ background: '#222' }}>🔇 Tắt nhạc</option>
+            <option value="custom-trigger" style={{ background: '#1c1c21', color: '#fff' }}>➕ Chọn tệp MP3 mới...</option>
+            <option value="mute" style={{ background: '#1c1c21', color: '#fff' }}>🔇 Tắt nhạc</option>
           </select>
         </div>
 
-        {/* Volume Control Slider */}
         {musicMode !== 'mute' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            {volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {volume === 0 ? <VolumeX size={16} color="rgba(255,255,255,0.6)" /> : <Volume2 size={16} color="rgba(255,255,255,0.8)" />}
             <input
               type="range"
               min="0"
@@ -327,22 +442,35 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
               step="0.05"
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              style={{ width: '70px', accentColor: 'var(--accent-1, #f59e0b)', cursor: 'pointer' }}
+              style={{ width: '65px', accentColor: 'var(--accent-primary, #c97a7e)', cursor: 'pointer' }}
             />
           </div>
         )}
 
-        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+        <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,0.15)' }} />
 
-        {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
           title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
         >
-          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }
