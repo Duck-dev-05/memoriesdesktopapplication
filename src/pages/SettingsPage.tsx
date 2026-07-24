@@ -223,6 +223,74 @@ export default function SettingsPage() {
         <div className="settings-group-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: 'var(--accent-secondary)' }}><HardDrive size={15} /></span>
+            <span className="settings-group-title">Tối ưu hiệu năng & Băng thông</span>
+          </div>
+        </div>
+        <div className="toggle-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+          <div className="toggle-info">
+            <span className="toggle-label">Số luồng tải lên đồng thời (Parallel Uploads)</span>
+            <span className="toggle-desc">Tăng tốc độ tải lên nhiều file cùng lúc trên đường truyền mạng mạnh.</span>
+          </div>
+          <select
+            defaultValue={localStorage.getItem('max_parallel_uploads') || '3'}
+            onChange={(e) => localStorage.setItem('max_parallel_uploads', e.target.value)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-medium)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="1">1 file (An toàn / Mạng yếu)</option>
+            <option value="3">3 file (Mặc định)</option>
+            <option value="5">5 file (Nhanh)</option>
+            <option value="10">10 file (Siêu tốc)</option>
+          </select>
+        </div>
+
+        <div className="toggle-row" style={{ alignItems: 'center', marginTop: '1rem' }}>
+          <div className="toggle-info">
+            <span className="toggle-label">Tối ưu & Dọn dẹp CSDL địa phương (SQLite Vacuum)</span>
+            <span className="toggle-desc">Giải phóng dung lượng thừa và làm mới chỉ mục tìm kiếm trên máy tính của bạn.</span>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+                if (!isTauri) {
+                  alert("Tính năng chỉ hỗ trợ trên ứng dụng Desktop (Tauri).");
+                  return;
+                }
+                const Database = (await import('@tauri-apps/plugin-sql')).default;
+                const db = await Database.load('sqlite:photos.db');
+                await db.execute('VACUUM;');
+                alert("Dọn dẹp và tối ưu hóa cơ sở dữ liệu địa phương thành công!");
+              } catch (e: any) {
+                console.error("Database maintenance error:", e);
+                alert(`Lỗi khi tối ưu cơ sở dữ liệu: ${e?.message || e}`);
+              }
+            }}
+            style={{
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-medium)',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 500
+            }}
+          >
+            Tối ưu ngay
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--accent-secondary)' }}><HardDrive size={15} /></span>
             <span className="settings-group-title">Cập nhật ứng dụng</span>
           </div>
         </div>

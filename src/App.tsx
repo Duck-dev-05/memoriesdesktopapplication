@@ -363,9 +363,14 @@ function App() {
     // Global keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+F or Cmd+F for Search
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         navigate('/search');
+      }
+      // Ctrl+U or Cmd+U for Upload
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        navigate('/upload');
       }
       // Alt-based navigation shortcuts
       if (e.altKey) {
