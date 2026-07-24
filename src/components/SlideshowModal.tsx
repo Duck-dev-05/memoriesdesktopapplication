@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, Minimize2, X, Music, Clock, Image as ImageIcon } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, Minimize2, X, Music, Clock, Shuffle, Image as ImageIcon } from 'lucide-react';
 import { Photo } from '../api';
 import { ambientSynth } from '../lib/ambientSynth';
 
@@ -14,6 +14,7 @@ interface SlideshowModalProps {
 export default function SlideshowModal({ photos, initialIndex = 0, onClose, albumName = "Album" }: SlideshowModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isShuffle, setIsShuffle] = useState(false);
   const [slideInterval, setSlideInterval] = useState(5); // 5 seconds
   const [musicMode, setMusicMode] = useState<'synth' | 'custom' | 'mute'>('synth');
   const [volume, setVolume] = useState(0.7);
@@ -31,6 +32,30 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
   const imageUrl = (currentPhoto as any)?.imageData || currentPhoto?.url || currentPhoto?.cloudUrl || '';
   const isVideo = Boolean(imageUrl?.match(/\.(mp4|webm|ogg|mov)$/i));
 
+  const handleNext = () => {
+    if (isShuffle && photos.length > 1) {
+      let nextIdx = Math.floor(Math.random() * photos.length);
+      while (nextIdx === currentIndex) {
+        nextIdx = Math.floor(Math.random() * photos.length);
+      }
+      setCurrentIndex(nextIdx);
+    } else {
+      setCurrentIndex(prev => (prev + 1) % photos.length);
+    }
+  };
+
+  const handlePrev = () => {
+    if (isShuffle && photos.length > 1) {
+      let prevIdx = Math.floor(Math.random() * photos.length);
+      while (prevIdx === currentIndex) {
+        prevIdx = Math.floor(Math.random() * photos.length);
+      }
+      setCurrentIndex(prevIdx);
+    } else {
+      setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length);
+    }
+  };
+
   // Lock body scroll while slideshow is active
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -44,11 +69,11 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
   useEffect(() => {
     if (!isPlaying) return;
     const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % photos.length);
+      handleNext();
     }, slideInterval * 1000);
 
     return () => clearInterval(timer);
-  }, [isPlaying, slideInterval, photos.length]);
+  }, [isPlaying, slideInterval, photos.length, isShuffle, currentIndex]);
 
   // Audio Music Management
   useEffect(() => {
@@ -90,14 +115,14 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
         e.preventDefault();
         setIsPlaying(prev => !prev);
       } else if (e.key === 'ArrowRight') {
-        setCurrentIndex(prev => (prev + 1) % photos.length);
+        handleNext();
       } else if (e.key === 'ArrowLeft') {
-        setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length);
+        handlePrev();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [photos.length, onClose]);
+  }, [photos.length, onClose, isShuffle, currentIndex]);
 
   const handleCustomAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -305,7 +330,7 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
         }}
       >
         <button
-          onClick={() => setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length)}
+          onClick={handlePrev}
           style={{
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -350,7 +375,7 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
         </button>
 
         <button
-          onClick={() => setCurrentIndex(prev => (prev + 1) % photos.length)}
+          onClick={handleNext}
           style={{
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -369,6 +394,33 @@ export default function SlideshowModal({ photos, initialIndex = 0, onClose, albu
           title="Ảnh tiếp theo (Right Arrow)"
         >
           <SkipForward size={16} />
+        </button>
+
+        <button
+          onClick={() => setIsShuffle(prev => !prev)}
+          style={{
+            background: isShuffle ? 'rgba(201, 122, 126, 0.3)' : 'rgba(255,255,255,0.08)',
+            border: isShuffle ? '1px solid rgba(201, 122, 126, 0.6)' : '1px solid rgba(255,255,255,0.1)',
+            color: isShuffle ? '#f3e8e8' : '#fff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            boxShadow: isShuffle ? '0 0 12px rgba(201, 122, 126, 0.4)' : 'none'
+          }}
+          onMouseEnter={e => {
+            if (!isShuffle) e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+          }}
+          onMouseLeave={e => {
+            if (!isShuffle) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+          }}
+          title={isShuffle ? "Tắt phát ngẫu nhiên" : "Bật phát ngẫu nhiên (Shuffle)"}
+        >
+          <Shuffle size={16} color={isShuffle ? "#c97a7e" : "#ffffff"} />
         </button>
 
         <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,0.15)' }} />
