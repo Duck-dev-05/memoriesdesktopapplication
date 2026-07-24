@@ -124,10 +124,20 @@ export interface PhotoStats {
 
 export const api = {
   movePhotosToAlbum: async (photoIds: string[], targetAlbumId: string | null): Promise<{ success: boolean }> => {
-    return fetchApi('/albums/move-photos', {
-      method: 'POST',
-      body: JSON.stringify({ photoIds, targetAlbumId }),
-    });
+    try {
+      return await fetchApi('/albums/move-photos', {
+        method: 'POST',
+        body: JSON.stringify({ photoIds, targetAlbumId }),
+      });
+    } catch (e: any) {
+      if (e?.message?.includes('405') || e?.message?.includes('404')) {
+        return await fetchApi('/photos', {
+          method: 'PUT',
+          body: JSON.stringify({ photoIds, targetAlbumId }),
+        });
+      }
+      throw e;
+    }
   },
 
   // Photos
