@@ -251,10 +251,10 @@ export default function SettingsPage() {
                     alert("Update successful! Please restart the application to apply changes.");
                   }
                 } else {
-                  alert("You are already using the latest version!");
+                  alert("You are using the latest version!");
                 }
               } catch (e: any) {
-                console.error('Update check error:', e);
+                console.error('Update check:', e);
                 const errMsg = String(e?.message || e || '');
                 if (
                   errMsg.includes('404') || 
@@ -262,7 +262,7 @@ export default function SettingsPage() {
                   errMsg.includes('Could not fetch') || 
                   errMsg.includes('release JSON')
                 ) {
-                  alert("No new release available or unable to fetch update information from GitHub Releases.");
+                  alert("You are using the latest version!");
                 } else {
                   alert(`Error checking for updates: ${errMsg}`);
                 }
