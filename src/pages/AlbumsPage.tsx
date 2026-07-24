@@ -141,10 +141,21 @@ export default function AlbumsPage() {
 
   // Helper to recursively collect a folder ID and all descendant subfolder IDs
   const getFolderAndSubfolderIds = (folderId: string): string[] => {
-    const directChildren = processedAlbums.filter(a => a.parentId === folderId);
+    const currentAlbumObj = processedAlbums.find(p => p.id === folderId);
+    const directChildren = processedAlbums.filter(a => 
+      a.id !== folderId && (
+        a.parentId === folderId || 
+        (currentAlbumObj && a.name.toLowerCase().startsWith(currentAlbumObj.name.toLowerCase() + ' '))
+      )
+    );
     let ids: string[] = [folderId];
     for (const child of directChildren) {
-      ids = ids.concat(getFolderAndSubfolderIds(child.id));
+      if (!ids.includes(child.id)) {
+        const subIds = getFolderAndSubfolderIds(child.id);
+        for (const subId of subIds) {
+          if (!ids.includes(subId)) ids.push(subId);
+        }
+      }
     }
     return ids;
   };
