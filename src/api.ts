@@ -202,10 +202,10 @@ export const api = {
       }
     }
 
-    // Image Compression (if Original Quality is false)
-    if (userSettings['Original Quality'] === false && finalFile.type.startsWith('image/')) {
+    // Image Compression (if Original Quality is false OR if file > 4MB to prevent Vercel 4.5MB 413 payload limit)
+    if (finalFile.type.startsWith('image/') && (userSettings['Original Quality'] === false || finalFile.size > 4 * 1024 * 1024)) {
       try {
-        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+        const options = { maxSizeMB: 3.8, maxWidthOrHeight: 2560, useWebWorker: true };
         finalFile = await imageCompression(finalFile, options);
       } catch (e) {
         console.error("Image compression failed", e);

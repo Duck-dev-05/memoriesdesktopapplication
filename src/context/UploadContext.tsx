@@ -32,32 +32,43 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     let successCount = 0;
     let errorCount = 0;
 
-    for (const job of jobsToProcess) {
-      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'uploading', progress: 10, error: undefined } : j));
-      
-      let progressInterval: any = null;
-      try {
-        progressInterval = setInterval(() => {
-          setJobs(prev => prev.map(j => {
-            if (j.id === job.id && j.progress < 90) {
-              return { ...j, progress: j.progress + Math.floor(Math.random() * 15) };
-            }
-            return j;
-          }));
-        }, 400);
+    let concurrency = 3;
+    try {
+      const savedLimit = localStorage.getItem('max_parallel_uploads');
+      if (savedLimit) concurrency = parseInt(savedLimit, 10) || 3;
+    } catch(e) {}
 
-        await api.addPhoto(job.file, job.albumId);
-        
-        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed', progress: 100 } : j));
-        successCount++;
-      } catch (error: any) {
-        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'error', error: error.message || "Tải lên thất bại" } : j));
-        errorCount++;
-      } finally {
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
-      }
+    for (let i = 0; i < jobsToProcess.length; i += concurrency) {
+      const batch = jobsToProcess.slice(i, i + concurrency);
+      await Promise.all(
+        batch.map(async (job) => {
+          setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'uploading', progress: 10, error: undefined } : j));
+          
+          let progressInterval: any = null;
+          try {
+            progressInterval = setInterval(() => {
+              setJobs(prev => prev.map(j => {
+                if (j.id === job.id && j.progress < 90) {
+                  return { ...j, progress: j.progress + Math.floor(Math.random() * 15) };
+                }
+                return j;
+              }));
+            }, 400);
+
+            await api.addPhoto(job.file, job.albumId);
+            
+            setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'completed', progress: 100 } : j));
+            successCount++;
+          } catch (error: any) {
+            setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'error', error: error.message || "Tải lên thất bại" } : j));
+            errorCount++;
+          } finally {
+            if (progressInterval) {
+              clearInterval(progressInterval);
+            }
+          }
+        })
+      );
     }
 
     try {

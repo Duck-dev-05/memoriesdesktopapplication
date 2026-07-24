@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { UploadCloud, Image as ImageIcon, Film, FileImage } from 'lucide-react';
 import { api, Photo } from '../api';
 import { extractFilesFromDataTransfer } from '../lib/fileDrop';
@@ -9,12 +10,21 @@ export default function UploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const { addJobs, isUploading } = useUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
 
   const fetchRecent = () => api.getPhotosWithLimit(4).then(setRecentUploads).catch(console.error);
 
   useEffect(() => {
     fetchRecent();
   }, []);
+
+  // Handle incoming files from global drag and drop redirect
+  useEffect(() => {
+    if (location.state?.files && Array.isArray(location.state.files) && location.state.files.length > 0) {
+      uploadFiles(location.state.files);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Refresh recent uploads when all jobs are finished
   useEffect(() => {

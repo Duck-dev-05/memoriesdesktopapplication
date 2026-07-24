@@ -404,11 +404,15 @@ function App() {
     e.preventDefault();
     setIsDragging(false);
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files);
-      // For each file, upload using the API
-      // In a real app we'd dispatch this to the UploadContext, 
-      // but for simplicity we'll just alert or log it, or redirect to upload page.
+    let files: File[] = [];
+    if (e.dataTransfer.items) {
+      const { extractFilesFromDataTransfer } = await import('./lib/fileDrop');
+      files = await extractFilesFromDataTransfer(e.dataTransfer.items);
+    } else if (e.dataTransfer.files) {
+      files = Array.from(e.dataTransfer.files);
+    }
+
+    if (files.length > 0) {
       navigate('/upload', { state: { files: files } });
     }
   };
