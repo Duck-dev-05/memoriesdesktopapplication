@@ -1,6 +1,6 @@
 [package]
 name = "memoriesdesktop-app"
-version = "1.0.0"
+version = "1.2.1"
 description = "Memories photo management application"
 authors = ["Minec"]
 edition = "2021"

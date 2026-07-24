@@ -331,20 +331,22 @@ export default function SettingsPage() {
             onClick={async () => {
               const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
               if (!isTauri) {
-                alert("Update check feature is only available when running the Desktop (Tauri) app.");
+                alert("Tính năng kiểm tra cập nhật chỉ hỗ trợ trên ứng dụng Desktop (Tauri).");
                 return;
               }
               try {
                 const { check } = await import('@tauri-apps/plugin-updater');
+                const { getVersion } = await import('@tauri-apps/api/app');
+                const currentVer = await getVersion();
                 const update = await check();
                 if (update) {
-                  const confirmed = confirm(`A new update is available (v${update.version}). Would you like to download and install it now?`);
+                  const confirmed = confirm(`Đã có bản cập nhật mới (v${update.version})!\nPhiên bản hiện tại: v${currentVer}\n\nBạn có muốn tải và cài đặt ngay không?`);
                   if (confirmed) {
                     await update.downloadAndInstall();
-                    alert("Update successful! Please restart the application to apply changes.");
+                    alert("Cập nhật thành công! Vui lòng khởi động lại ứng dụng để áp dụng thay đổi.");
                   }
                 } else {
-                  alert("You are using the latest version!");
+                  alert(`Bạn đang sử dụng phiên bản mới nhất (v${currentVer})!`);
                 }
               } catch (e: any) {
                 console.error('Update check:', e);
@@ -355,9 +357,9 @@ export default function SettingsPage() {
                   errMsg.includes('Could not fetch') || 
                   errMsg.includes('release JSON')
                 ) {
-                  alert("You are using the latest version!");
+                  alert(`Bạn đang sử dụng phiên bản mới nhất!`);
                 } else {
-                  alert(`Error checking for updates: ${errMsg}`);
+                  alert(`Lỗi khi kiểm tra cập nhật: ${errMsg}`);
                 }
               }
             }}
